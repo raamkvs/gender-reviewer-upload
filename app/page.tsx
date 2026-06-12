@@ -17,7 +17,14 @@ export default function UploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/chat-ids", { cache: "no-store" })
+    const timestamp = Date.now();
+    fetch(`/api/chat-ids?_t=${timestamp}`, {
+      cache: "no-cache",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+      },
+    })
       .then(async (r) => {
         if (!r.ok) {
           throw new Error(`Failed to load sessions (HTTP ${r.status})`);
