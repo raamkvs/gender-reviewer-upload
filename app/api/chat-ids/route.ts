@@ -1,10 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
+import { unstable_noStore as noStore } from "next/cache";
 import { NextResponse } from "next/server";
 
-// Always fetch fresh session list from Supabase (never CDN-cache this route).
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function GET() {
+  noStore();
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_KEY;
 

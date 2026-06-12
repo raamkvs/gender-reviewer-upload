@@ -12,13 +12,32 @@ export default function UploadPage() {
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [message, setMessage] = useState("");
   const [uploadedCount, setUploadedCount] = useState(0);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/chat-ids")
-      .then((r) => r.json())
-      .then((data) => setChatIds(data.chat_ids ?? []))
-      .catch(() => setChatIds([]));
+    fetch("/api/chat-ids", { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) {
+          throw new Error(`Failed to load sessions (HTTP ${r.status})`);
+        }
+        return r.json();
+      })
+      .then((data) => {
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        setChatIds(data.chat_ids ?? []);
+      })
+      .catch((err: Error) => {
+        setChatIds([]);
+        setSessionsError(
+          err.message ||
+            "Could not load sessions. Use “Enter manually…” or refresh the page."
+        );
+      })
+      .finally(() => setSessionsLoading(false));
   }, []);
 
   const activeChatId = selectedChatId === "__custom__" ? customChatId.trim() : selectedChatId;
@@ -92,8 +111,11 @@ export default function UploadPage() {
               className="w-full border-2 border-undp-gray-300 rounded-lg px-4 py-2.5 text-sm text-undp-black focus:outline-none focus:ring-2 focus:ring-undp-blue focus:border-transparent transition-all"
               value={selectedChatId}
               onChange={(e) => setSelectedChatId(e.target.value)}
+              disabled={sessionsLoading}
             >
-              <option value="">— Select a session —</option>
+              <option value="">
+                {sessionsLoading ? "Loading sessions…" : "— Select a session —"}
+              </option>
               {chatIds.map((id) => (
                 <option key={id} value={id}>
                   {id}
@@ -101,6 +123,16 @@ export default function UploadPage() {
               ))}
               <option value="__custom__">Enter manually…</option>
             </select>
+
+            {sessionsError && (
+              <p className="mt-2 text-xs text-red-700 font-medium">{sessionsError}</p>
+            )}
+            {!sessionsLoading && !sessionsError && chatIds.length === 0 && (
+              <p className="mt-2 text-xs text-undp-gray-600">
+                No sessions found yet. Run the chatbot pipeline first, or enter a session ID
+                manually.
+              </p>
+            )}
 
             {selectedChatId === "__custom__" && (
               <input
